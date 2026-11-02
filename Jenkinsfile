@@ -42,7 +42,7 @@ pipeline {
 
         stage('Debug Kubernetes Connection') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'minikube-config', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
                         echo "Checking Kubernetes context..."
@@ -56,7 +56,7 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'minikube-config', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
                         kubectl apply -f deployment.yaml
@@ -67,7 +67,7 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'minikube-config', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
                         echo "Verifying deployments, pods, and services..."
