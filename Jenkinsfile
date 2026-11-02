@@ -37,25 +37,30 @@ pipeline {
             }
         }
 	
-	stage('Debug Kubernetes Connection') {
+        stage('Setup localized kubectl CLI') {
             steps {
-                withCredentials([
-                    file(
-                        credentialsId: 'minikube-kubeconfig',
-                        variable: 'KUBECONFIG'
-                    )
-                ]) {
+                // Downloads and marks a local workspace copy of kubectl as executable
+                sh '''
+                    curl -LO "https://k8s.io"
+                    chmod +x ./kubectl
+                '''
+            }
+        }
+
+        stage('Debug Kubernetes Connection') {
+            steps {
+                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
+                    // Executing via "./kubectl" bypasses the host shell system PATH limits
                     sh '''
                         set -eu
-
                         echo "Checking Kubernetes context..."
-                        kubectl config current-context
+                        ./kubectl config current-context
 
                         echo "Checking Kubernetes API..."
-                        kubectl get --raw=/version
+                        ./kubectl get --raw=/version
 
                         echo "Checking cluster nodes..."
-                        kubectl get nodes
+                        ./kubectl get nodes
                     '''
                 }
             }
@@ -63,15 +68,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([
-                    file(
-                        credentialsId: 'minikube-kubeconfig',
-                        variable: 'KUBECONFIG'
-                    )
-                ]) {
+                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
-                        kubectl apply -f deployment.yaml
+                        ./kubectl apply -f deployment.yaml
                     '''
                 }
             }
@@ -79,17 +79,12 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                withCredentials([
-                    file(
-                        credentialsId: 'minikube-kubeconfig',
-                        variable: 'KUBECONFIG'
-                    )
-                ]) {
+                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
-                        kubectl get deployments
-                        kubectl get pods
-                        kubectl get services
+                        ./kubectl get deployments
+                        ./kubectl get pods
+                        ./kubectl get services
                     '''
                 }
             }
