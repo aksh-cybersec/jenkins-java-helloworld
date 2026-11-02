@@ -39,13 +39,19 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                sh 'kubectl apply -f deployment.yaml'
+                // Securely binds the cluster config so kubectl can authenticate
+                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl apply -f deployment.yaml'
+                }
             }
         }
 
         stage('Verify K8s Pod Status') {
             steps {
-                sh 'kubectl get pods -l app=java-hello'
+                // Securely binds the cluster config so kubectl can pull stats
+                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh 'kubectl get pods -l app=java-hello'
+                }
             }
         }
     }
