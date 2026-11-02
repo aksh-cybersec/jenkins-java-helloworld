@@ -36,21 +36,61 @@ pipeline {
                 }
             }
         }
-
-        stage('Deploy to Kubernetes') {
+	
+	stage('Debug Kubernetes Connection') {
             steps {
-                // Securely binds the cluster config so kubectl can authenticate
-                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh 'kubectl apply -f deployment.yaml'
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        echo "Checking Kubernetes context..."
+                        kubectl config current-context
+
+                        echo "Checking Kubernetes API..."
+                        kubectl get --raw=/version
+
+                        echo "Checking cluster nodes..."
+                        kubectl get nodes
+                    '''
                 }
             }
         }
 
-        stage('Verify K8s Pod Status') {
+        stage('Deploy to Kubernetes') {
             steps {
-                // Securely binds the cluster config so kubectl can pull stats
-                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
-                    sh 'kubectl get pods -l app=java-hello'
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        kubectl apply -f deployment.yaml
+                    '''
+                }
+            }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                withCredentials([
+                    file(
+                        credentialsId: 'minikube-kubeconfig',
+                        variable: 'KUBECONFIG'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+                        kubectl get deployments
+                        kubectl get pods
+                        kubectl get services
+                    '''
                 }
             }
         }
