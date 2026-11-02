@@ -19,9 +19,7 @@ pipeline {
         stage('Run Docker Container Locally') {
             steps {
                 // Removes any older container with the same name and runs the new one
-                sh '
-                    docker run --name java-app-container java-hello-world:latest
-                '
+                sh 'docker run --name java-app-container java-hello-world:latest'
             }
         }
     }
