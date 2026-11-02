@@ -41,7 +41,7 @@ pipeline {
             steps {
                 // Downloads and marks a local workspace copy of kubectl as executable
                 sh '''
-                    curl -LO "https://k8s.io"
+                    curl -LO curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
                     chmod +x ./kubectl
                 '''
             }
