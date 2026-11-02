@@ -25,7 +25,6 @@ pipeline {
             steps {
                 // Safely cleans up the older container instance if it exists, then runs it locally
                 sh '''
-                    docker rm -f java-app-container || true
                     docker run -d --name java-app-container java-hello-world:latest
                 '''
             }
@@ -43,6 +42,17 @@ pipeline {
                     sh "docker tag java-hello-world:latest ${DOCKER_USER}/java-hello-world:latest"
                     sh "docker push ${DOCKER_USER}/java-hello-world:latest"
                 }
+            }
+
+	stage('Deploy to Kubernetes') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+            }
+        }
+
+        stage('Verify K8s Pod Status') {
+            steps {
+                sh 'kubectl get pods -l app=java-hello'
             }
         }
     }

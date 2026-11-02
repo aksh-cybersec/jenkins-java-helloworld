@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java-hello-deployment
+  labels:
+    app: java-hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: java-hello
+  template:
+    metadata:
+      labels:
+        app: java-hello
+    spec:
+      containers:
+      - name: java-hello-container
+        image: akshadasable/java-hello-world:latest
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-hello-service
+spec:
+  selector:
+    app: java-hello
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
