@@ -3,6 +3,7 @@ pipeline {
     
     environment {
         DOCKER_USER = 'akshadasable'
+        IMAGE_NAME = "akshadasable/java-hello-world:latest"
     }
 
     stages {
@@ -14,7 +15,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t java-hello-world:latest .'
+                sh "docker build -t ${IMAGE_NAME} ."
             }
         }
 
@@ -22,7 +23,7 @@ pipeline {
             steps {
                 sh '''
                     docker rm -f java-app-container || true
-                    docker run -d --name java-app-container java-hello-world:latest
+                    docker run -d --name java-app-container ${IMAGE_NAME}
                 '''
             }
         }
@@ -30,37 +31,24 @@ pipeline {
         stage('Tag & Push to DockerHub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'my-docker-hub-credentials-id', passwordVariable: 'DOCKER_PASS_ENV', usernameVariable: 'DOCKER_USER_ENV')]) {
-                    sh 'echo "$DOCKER_PASS_ENV" | docker login -u "$DOCKER_USER_ENV" --password-stdin'
-                    sh "docker tag java-hello-world:latest ${DOCKER_USER}/java-hello-world:latest"
-                    sh "docker push ${DOCKER_USER}/java-hello-world:latest"
+                    sh '''
+                        set +x
+                        echo "$DOCKER_PASS_ENV" | docker login -u "$DOCKER_USER_ENV" --password-stdin
+                    '''
+                    sh "docker push ${IMAGE_NAME}"
                 }
-            }
-        }
-	
-        stage('Setup localized kubectl CLI') {
-            steps {
-                // Downloads and marks a local workspace copy of kubectl as executable
-                sh '''
-                    curl -LO curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
-                    chmod +x ./kubectl
-                '''
             }
         }
 
         stage('Debug Kubernetes Connection') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
-                    // Executing via "./kubectl" bypasses the host shell system PATH limits
+                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
                         echo "Checking Kubernetes context..."
-                        ./kubectl config current-context
-
-                        echo "Checking Kubernetes API..."
-                        ./kubectl get --raw=/version
-
+                        kubectl config current-context
                         echo "Checking cluster nodes..."
-                        ./kubectl get nodes
+                        kubectl get nodes
                     '''
                 }
             }
@@ -68,10 +56,10 @@ pipeline {
 
         stage('Deploy to Kubernetes') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
-                        ./kubectl apply -f deployment.yaml
+                        kubectl apply -f deployment.yaml
                     '''
                 }
             }
@@ -79,12 +67,13 @@ pipeline {
 
         stage('Verify Deployment') {
             steps {
-                withCredentials([file(credentialsId: 'minikube-kubeconfig', variable: 'KUBECONFIG')]) {
+                withCredentials([file(credentialsId: 'minikube-config-vm', variable: 'KUBECONFIG')]) {
                     sh '''
                         set -eu
-                        ./kubectl get deployments
-                        ./kubectl get pods
-                        ./kubectl get services
+                        echo "Verifying deployments, pods, and services..."
+                        kubectl get deployments
+                        kubectl get pods
+                        kubectl get services
                     '''
                 }
             }
